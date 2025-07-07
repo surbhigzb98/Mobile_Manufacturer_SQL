@@ -7,7 +7,7 @@ This repository presents a SQL-based data analysis project simulating a cellphon
 ### 🧾 Case Overview
 
 > **Business Scenario**  
-> A fictional database named **"Cellphones Information"** holds data on sales transactions, manufacturers, models, customers, and geographical locations.  
+> A  database named **"Cellphones Information"** holds data on sales transactions, manufacturers, models, customers, and geographical locations.  
 > The case study is performed on manually created tables that simulate transactional data for mobile device purchases.
 
 ---
