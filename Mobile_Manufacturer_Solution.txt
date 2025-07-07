@@ -1,0 +1,231 @@
+--SQL Advance Case Study
+
+
+--Q1--BEGIN 
+
+
+select  c.IDCustomer, year(f.date) as Years , l.State
+from DIM_Manufacturer ma 
+INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+INNER JOIN  dim_Customer c ON f.IDCustomer = c.IDCustomer
+INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+INNER JOIN DIM_DATE d ON d.date = f.date
+where year(f.date) BETWEEN 2005 AND 2010
+group by year(f.date), l.state, c.IDCustomer
+order by year(f.date)  ASC
+
+
+
+--Q1--END
+
+--Q2--BEGIN
+
+
+select  ma.manufacturer_name,l.state
+from DIM_Manufacturer ma 
+INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+INNER JOIN  dim_Customer c ON f.IDCustomer = c.IDCustomer
+INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+INNER JOIN DIM_DATE d ON d.date = f.date
+where ma.manufacturer_name = 'samsung' AND l.country = 'US'
+group by ma.manufacturer_name, l.state
+order by l.state asc
+
+
+--Q2--END
+
+--Q3--BEGIN      
+
+
+select l.state, l.zipcode, mo.model_name, count(f.quantity) as Number_of_Transactions
+from DIM_Manufacturer ma 
+INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+INNER JOIN  dim_Customer c ON f.IDCustomer = c.IDCustomer
+INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+INNER JOIN DIM_DATE d ON d.date = f.date
+group by l.state, l.zipcode, mo.model_name
+
+
+--Q3--END
+
+--Q4--BEGIN
+
+
+select  top 1 mo.Model_Name, (f.TotalPrice) as Lowest_Price_from_all
+from DIM_Manufacturer ma 
+INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+INNER JOIN  dim_Customer c ON f.IDCustomer = c.IDCustomer
+INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+INNER JOIN DIM_DATE d ON d.date = f.date
+group by mo.Model_Name, f.TotalPrice
+order by f.TotalPrice asc
+
+
+
+--Q4--END
+
+--Q5--BEGIN
+
+
+select top 5 ma.Manufacturer_Name, mo.Model_Name,
+avg(f.TotalPrice) as Average_Total_Price, f.Quantity
+from DIM_Manufacturer ma 
+INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+INNER JOIN  dim_Customer c ON f.IDCustomer = c.IDCustomer
+INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+INNER JOIN DIM_DATE d ON d.date = f.date
+group by ma.Manufacturer_Name, mo.Model_Name,(f.TotalPrice),f.Quantity
+order by Average_Total_Price desc
+
+
+
+--Q5--END
+
+--Q6--BEGIN
+
+
+select c.Customer_Name, avg(f.TotalPrice) as Average_Amount_Spent,
+year(d.date) as Year
+from DIM_Manufacturer ma 
+INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+INNER JOIN  dim_Customer c ON f.IDCustomer = c.IDCustomer
+INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+INNER JOIN DIM_DATE d ON d.date = f.date
+group by c.Customer_Name, (d.date), f.TotalPrice
+having year(d.date) = 2009 AND avg(f.TotalPrice) > 500
+order by Average_Amount_Spent desc
+
+
+--Q6--END
+
+
+	
+--Q7--BEGIN  
+
+
+WITH RankedModels AS (
+    SELECT 
+        mo.Model_Name, 
+        YEAR(d.date) AS Year,
+        DENSE_RANK() OVER (PARTITION BY YEAR(d.date) ORDER BY f.Quantity DESC) AS DENSERANK_Qt
+    FROM DIM_Manufacturer ma
+    INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+    INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+    INNER JOIN dim_Customer c ON f.IDCustomer = c.IDCustomer
+    INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+    INNER JOIN DIM_DATE d ON d.date = f.date
+)
+SELECT 
+    Model_Name
+FROM RankedModels
+WHERE (Year = 2008 AND DENSERANK_Qt <= 5)
+   OR (Year = 2009 AND DENSERANK_Qt <= 5)
+   OR (Year = 2010 AND DENSERANK_Qt <= 5)
+GROUP BY Model_Name
+HAVING COUNT(DISTINCT Year) = 3
+ORDER BY Model_Name;	
+	
+
+
+--Q7--END
+
+
+--Q8--BEGIN
+
+WITH RankedModels AS (
+    SELECT 
+        ma.IDManufacturer, f.TotalPrice, 
+        YEAR(d.date) AS Year,
+        DENSE_RANK() OVER (PARTITION BY YEAR(d.date) ORDER BY f.TotalPrice DESC) AS DENSERANK_Qt
+		 FROM DIM_Manufacturer ma
+    INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+    INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+    INNER JOIN dim_Customer c ON f.IDCustomer = c.IDCustomer
+    INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+    INNER JOIN DIM_DATE d ON d.date = f.date
+)
+SELECT 
+    Year, DENSERANK_Qt,  IDManufacturer,TotalPrice 
+FROM RankedModels
+where year IN ('2009', '2010') AND  DENSERANK_Qt = 2
+GROUP BY  Year, DENSERANK_Qt,IDManufacturer, TotalPrice
+ORDER BY Year asc
+
+
+
+--Q8--END
+
+
+--Q9--BEGIN
+	
+select ma.Manufacturer_Name, year(d.date) as Year
+FROM DIM_Manufacturer ma
+    INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+    INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+    INNER JOIN dim_Customer c ON f.IDCustomer = c.IDCustomer
+    INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+    INNER JOIN DIM_DATE d ON d.date = f.date
+where year(d.date) = '2010' AND year(d.date) <> '2009'
+group by ma.Manufacturer_Name, d.date
+order by Year asc
+
+
+
+--Q9--END
+
+
+
+--Q10--BEGIN
+	
+WITH CustomerSummary AS (
+    SELECT 
+        c.Customer_Name, 
+        YEAR(d.date) AS Years,
+        AVG(f.TotalPrice) AS Average_Spend,
+        AVG(f.Quantity) AS Average_Quantity,
+        SUM(f.TotalPrice) AS Total_Spend
+    FROM DIM_Manufacturer ma
+    INNER JOIN DIM_MODEL mo ON ma.IDManufacturer = mo.IDManufacturer
+    INNER JOIN FACT_TRANSACTIONS f ON mo.IDModel = f.IDModel
+    INNER JOIN dim_Customer c ON f.IDCustomer = c.IDCustomer
+    INNER JOIN DIM_LOCATION l ON l.IDLocation = f.IDLocation
+    INNER JOIN DIM_DATE d ON d.date = f.date
+    GROUP BY c.Customer_Name, YEAR(d.date)
+),
+PercentageChange AS (
+    SELECT 
+        cs.Customer_Name, 
+        cs.Years,
+        cs.Average_Spend,
+        cs.Average_Quantity,
+        cs.Total_Spend,
+        LAG(cs.Total_Spend) OVER (PARTITION BY cs.Customer_Name ORDER BY cs.Years) AS Previous_Year_Spend,
+        CASE 
+            WHEN LAG(cs.Total_Spend) OVER (PARTITION BY cs.Customer_Name ORDER BY cs.Years) IS NOT NULL THEN 
+                ((cs.Total_Spend - LAG(cs.Total_Spend) OVER (PARTITION BY cs.Customer_Name ORDER BY cs.Years)) * 100.0) / 
+                LAG(cs.Total_Spend) OVER (PARTITION BY cs.Customer_Name ORDER BY cs.Years)
+            ELSE 
+                NULL
+        END AS Percentage_Change
+    FROM CustomerSummary cs
+)
+SELECT TOP 100 
+    Customer_Name, 
+    Years, 
+    Average_Spend, 
+    Average_Quantity, 
+    Total_Spend, 
+    Percentage_Change
+FROM PercentageChange
+ORDER BY Percentage_Change DESC;
+
+
+
+--Q10--END
+	
